@@ -33,13 +33,13 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
         }
 
         if ($success && $this->getEnabled($mainContextId)) {
-            // Add application-level hook registrations here
+            // CORREGIDO: Consolidar hooks duplicados
             HookRegistry::register('Templates::Management::Settings::website', array($this, 'callbackShowWebsiteSettingsTabs'));
             HookRegistry::register('LoadComponentHandler', array($this, 'setupGridHandler'));
             HookRegistry::register('Publication::publish', array($this, 'handlePublicationEvent'));
             
-            // Add menu items
-            HookRegistry::register('Template::Settings::website', array($this, 'callbackShowWebsiteSettingsTabs'));
+            // AGREGADO: Hook para mostrar en el workflow
+            HookRegistry::register('Templates::Workflow::Publication', array($this, 'addToWorkflow'));
         }
         return $success;
     }
@@ -69,6 +69,21 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
     {
         $this->import('CoarNotifyReviewOfferSchemaMigration');
         return new CoarNotifyReviewOfferSchemaMigration();
+    }
+
+    /**
+     * CORREGIDO: Método para obtener configuraciones de servicios de revisión
+     */
+    public function getReviewServiceList($contextId = null)
+    {
+        if ($contextId === null) {
+            $request = Application::get()->getRequest();
+            $context = $request->getContext();
+            $contextId = $context ? $context->getId() : 0;
+        }
+        
+        $reviewServiceList = $this->getSetting($contextId, 'reviewServiceList');
+        return is_array($reviewServiceList) ? $reviewServiceList : array();
     }
 
     /**
@@ -162,6 +177,29 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
     }
 
     /**
+     * AGREGADO: Hook para mostrar en el workflow de publicación
+     */
+    public function addToWorkflow($hookName, $args)
+    {
+        $templateMgr = $args[1];
+        $output = &$args[2];
+        
+        $request = Application::get()->getRequest();
+        $submission = $templateMgr->getTemplateVars('submission');
+        
+        if ($submission) {
+            $templateMgr->assign([
+                'submissionId' => $submission->getId(),
+                'reviewServiceList' => $this->getReviewServiceList()
+            ]);
+            
+            $output .= $templateMgr->fetch($this->getTemplateResource('coarNotifyReviewOffer.tpl'));
+        }
+        
+        return false;
+    }
+
+    /**
      * Permit requests to the COAR Notify grid handler
      * @param $hookName string The name of the hook being invoked
      * @param $params array The parameters to the invoked hook
@@ -169,9 +207,11 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
     public function setupGridHandler($hookName, $params)
     {
         $component = &$params[0];
-        if ($component == 'plugins.generic.coarNotifyReviewOffer.controllers.grid.CoarNotifyReviewOfferGridHandler') {
+        
+        // CORREGIDO: Nombre del grid handler
+        if ($component == 'plugins.generic.coarNotifyReviewOffer.controllers.grid.CoarReviewOfferGridHandler') {
             import($component);
-            CoarNotifyReviewOfferGridHandler::setPlugin($this);
+            CoarReviewOfferGridHandler::setPlugin($this);
             return true;
         }
         return false;
@@ -231,10 +271,6 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
      */
     private function sendNotificationToService($submission, $service, $user, $type = 'manual')
     {
-        // Implementation for sending COAR Notify protocol messages
-        // This would contain the actual HTTP request logic
-        // Following COAR Notify specification
-        
         $this->import('classes.CoarNotifyReviewOfferDAO');
         $coarDAO = new CoarNotifyReviewOfferDAO();
         
