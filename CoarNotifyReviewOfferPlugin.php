@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @file CoarNotifyReviewOfferPlugin.inc.php
+ * @file CoarNotifyReviewOfferPlugin.php
  *
  * Copyright (c) 2014-2021 Simon Fraser University
  * Copyright (c) 2000-2021 John Willinsky
@@ -13,10 +13,40 @@
  * @brief COAR Notify Review Offer plugin class
  */
 
-import('lib.pkp.classes.plugins.GenericPlugin');
+use PKP\plugins\GenericPlugin;
+use PKP\core\JSONMessage;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxModal;
 
 class CoarNotifyReviewOfferPlugin extends GenericPlugin
 {
+    /**
+     * Called as a plugin is registered to the registry
+     */
+    public function register($category, $path, $mainContextId = null)
+    {
+        $success = parent::register($category, $path, $mainContextId);
+        if (!Config::getVar('general', 'installed') || defined('RUNNING_UPGRADE')) {
+            return $success;
+        }
+
+        if ($success && $this->getEnabled($mainContextId)) {
+            // AGREGAR: Registrar DAOs necesarios
+            $this->import('classes.ReviewOfferPreferenceDAO');
+            $reviewOfferPreferenceDao = new ReviewOfferPreferenceDAO();
+            DAORegistry::registerDAO('ReviewOfferPreferenceDAO', $reviewOfferPreferenceDao);
+            
+            // Hooks existentes
+            HookRegistry::register('Templates::Management::Settings::website', array($this, 'callbackShowWebsiteSettingsTabs'));
+            HookRegistry::register('LoadComponentHandler', array($this, 'setupGridHandler'));
+            HookRegistry::register('Publication::publish', array($this, 'handlePublicationEvent'));
+            
+            // Hook para mostrar en el workflow
+            HookRegistry::register('Templates::Workflow::Publication', array($this, 'addToWorkflow'));
+        }
+        return $success;
+    }
+
     /**
      * Get the plugin display name.
      * @return string
@@ -45,7 +75,7 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
     }
 
     /**
-     * CORREGIDO: Método para obtener configuraciones de servicios de revisión
+     * Método para obtener configuraciones de servicios de revisión
      */
     public function getReviewServiceList($contextId = null)
     {
@@ -150,7 +180,7 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
     }
 
     /**
-     * AGREGADO: Hook para mostrar en el workflow de publicación
+     * Hook para mostrar en el workflow de publicación
      */
     public function addToWorkflow($hookName, $args)
     {
@@ -181,7 +211,6 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
     {
         $component = &$params[0];
         
-        // CORREGIDO: Nombre del grid handler
         if ($component == 'plugins.generic.coarNotifyReviewOffer.controllers.grid.CoarReviewOfferGridHandler') {
             import($component);
             CoarReviewOfferGridHandler::setPlugin($this);
@@ -374,7 +403,6 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
     public function getActions($request, $verb)
     {
         $router = $request->getRouter();
-        import('lib.pkp.classes.linkAction.request.AjaxModal');
         return array_merge(
             $this->getEnabled() ? [
                 new LinkAction(
@@ -389,29 +417,5 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
             ] : [],
             parent::getActions($request, $verb)
         );
-    }
-
-    public function register($category, $path, $mainContextId = null)
-    {
-        $success = parent::register($category, $path, $mainContextId);
-        if (!Config::getVar('general', 'installed') || defined('RUNNING_UPGRADE')) {
-            return $success;
-        }
-
-        if ($success && $this->getEnabled($mainContextId)) {
-            // AGREGAR: Registrar DAOs necesarios
-            $this->import('classes.ReviewOfferPreferenceDAO');
-            $reviewOfferPreferenceDao = new ReviewOfferPreferenceDAO();
-            DAORegistry::registerDAO('ReviewOfferPreferenceDAO', $reviewOfferPreferenceDao);
-            
-            // Hooks existentes
-            HookRegistry::register('Templates::Management::Settings::website', array($this, 'callbackShowWebsiteSettingsTabs'));
-            HookRegistry::register('LoadComponentHandler', array($this, 'setupGridHandler'));
-            HookRegistry::register('Publication::publish', array($this, 'handlePublicationEvent'));
-            
-            // Hook para mostrar en el workflow
-            HookRegistry::register('Templates::Workflow::Publication', array($this, 'addToWorkflow'));
-        }
-        return $success;
     }
 }
