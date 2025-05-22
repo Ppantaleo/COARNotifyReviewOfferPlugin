@@ -1,6 +1,15 @@
 <?php
 
-import('lib.pkp.classes.controllers.grid.GridCellProvider');
+use PKP\controllers\grid\GridHandler;
+use PKP\controllers\grid\GridRow;
+use PKP\controllers\grid\GridCellProvider;
+use PKP\controllers\grid\GridColumn;
+use PKP\linkAction\LinkAction;
+use PKP\linkAction\request\AjaxAction;
+use PKP\security\authorization\SubmissionAccessPolicy;
+use PKP\core\JSONMessage;
+use PKP\db\DAORegistry;
+use APP\core\Application;
 
 class CoarNotifyReviewOfferGridCellProvider extends GridCellProvider {
 
