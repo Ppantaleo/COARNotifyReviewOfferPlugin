@@ -18,33 +18,6 @@ import('lib.pkp.classes.plugins.GenericPlugin');
 class CoarNotifyReviewOfferPlugin extends GenericPlugin
 {
     /**
-     * Called as a plugin is registered to the registry
-     * @param $category String Name of category plugin was registered to
-     * @param $path String The path the plugin was found in
-     * @param $mainContextId int To identify if the plugin is enabled
-     * @return boolean True iff plugin initialized successfully; if false,
-     *  the plugin will not be registered.
-     */
-    public function register($category, $path, $mainContextId = null)
-    {
-        $success = parent::register($category, $path, $mainContextId);
-        if (!Config::getVar('general', 'installed') || defined('RUNNING_UPGRADE')) {
-            return $success;
-        }
-
-        if ($success && $this->getEnabled($mainContextId)) {
-            // CORREGIDO: Consolidar hooks duplicados
-            HookRegistry::register('Templates::Management::Settings::website', array($this, 'callbackShowWebsiteSettingsTabs'));
-            HookRegistry::register('LoadComponentHandler', array($this, 'setupGridHandler'));
-            HookRegistry::register('Publication::publish', array($this, 'handlePublicationEvent'));
-            
-            // AGREGADO: Hook para mostrar en el workflow
-            HookRegistry::register('Templates::Workflow::Publication', array($this, 'addToWorkflow'));
-        }
-        return $success;
-    }
-
-    /**
      * Get the plugin display name.
      * @return string
      */
