@@ -1,6 +1,10 @@
 <?php
 
-import('lib.pkp.classes.form.Form');
+use PKP\form\Form;
+use PKP\form\validation\FormValidatorPost;
+use PKP\form\validation\FormValidatorCSRF;
+use PKP\template\TemplateManager;
+use APP\core\Application;
 
 class CoarNotifyReviewOfferSettingsForm extends Form {
 

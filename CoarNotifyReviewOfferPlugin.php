@@ -17,6 +17,15 @@ use PKP\plugins\GenericPlugin;
 use PKP\core\JSONMessage;
 use PKP\linkAction\LinkAction;
 use PKP\linkAction\request\AjaxModal;
+use PKP\config\Config;
+use PKP\core\Registry;
+use APP\core\Application;
+use PKP\core\PKPApplication;
+use PKP\template\TemplateManager;
+use PKP\core\Core;
+use APP\i18n\AppLocale;
+use PKP\plugins\HookRegistry;
+use PKP\db\DAORegistry;
 
 class CoarNotifyReviewOfferPlugin extends GenericPlugin
 {
