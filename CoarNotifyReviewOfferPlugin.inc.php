@@ -417,4 +417,28 @@ class CoarNotifyReviewOfferPlugin extends GenericPlugin
             parent::getActions($request, $verb)
         );
     }
+
+    public function register($category, $path, $mainContextId = null)
+    {
+        $success = parent::register($category, $path, $mainContextId);
+        if (!Config::getVar('general', 'installed') || defined('RUNNING_UPGRADE')) {
+            return $success;
+        }
+
+        if ($success && $this->getEnabled($mainContextId)) {
+            // AGREGAR: Registrar DAOs necesarios
+            $this->import('classes.ReviewOfferPreferenceDAO');
+            $reviewOfferPreferenceDao = new ReviewOfferPreferenceDAO();
+            DAORegistry::registerDAO('ReviewOfferPreferenceDAO', $reviewOfferPreferenceDao);
+            
+            // Hooks existentes
+            HookRegistry::register('Templates::Management::Settings::website', array($this, 'callbackShowWebsiteSettingsTabs'));
+            HookRegistry::register('LoadComponentHandler', array($this, 'setupGridHandler'));
+            HookRegistry::register('Publication::publish', array($this, 'handlePublicationEvent'));
+            
+            // Hook para mostrar en el workflow
+            HookRegistry::register('Templates::Workflow::Publication', array($this, 'addToWorkflow'));
+        }
+        return $success;
+    }
 }
